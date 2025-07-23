@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Platformer Game</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <script src="script.js"></script>
+</body>
+</html>body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #1e1e1e;
+}
+
+#gameCanvas {
+  display: block;
+  background: linear-gradient(#87CEEB, #1e1e1e);
+  margin: auto;
+  border: 3px solid #fff;
+}const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = 800;
+canvas.height = 400;
+
+let keys = {};
+let score = 0;
+
+const player = {
+  x: 50,
+  y: 300,
+  width: 30,
+  height: 30,
+  velocityX: 0,
+  velocityY: 0,
+  speed: 4,
+  jumpPower: -10,
+  onGround: false
+};
+
+const gravity = 0.5;
+
+const platforms = [
+  { x: 0, y: 350, width: 800, height: 50 },
+  { x: 200, y: 250, width: 120, height: 10 },
+  { x: 400, y: 200, width: 120, height: 10 }
+];
+
+const stars = [
+  { x: 220, y: 220, collected: false },
+  { x: 420, y: 170, collected: false }
+];
+
+function drawRect(x, y, width, height, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, width, height);
+}
+
+function drawCircle(x, y, radius, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function update() {
+  player.velocityY += gravity;
+  player.x += player.velocityX;
+  player.y += player.velocityY;
+
+  player.onGround = false;
+  for (let plat of platforms) {
+    if (
+      player.x < plat.x + plat.width &&
+      player.x + player.width > plat.x &&
+      player.y + player.height < plat.y + 10 &&
+      player.y + player.height + player.velocityY >= plat.y
+    ) {
+      player.y = plat.y - player.height;
+      player.velocityY = 0;
+      player.onGround = true;
+    }
+  }
+
+  // Star collection
+  for (let star of stars) {
+    if (
+      !star.collected &&
+      player.x < star.x + 15 &&
+      player.x + player.width > star.x &&
+      player.y < star.y + 15 &&
+      player.y + player.height > star.y
+    ) {
+      star.collected = true;
+      score++;
+    }
+  }
+
+  // Horizontal control
+  if (keys["ArrowLeft"] || keys["a"]) {
+    player.velocityX = -player.speed;
+  } else if (keys["ArrowRight"] || keys["d"]) {
+    player.velocityX = player.speed;
+  } else {
+    player.velocityX = 0;
+  }
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw platforms
+  for (let plat of platforms) {
+    drawRect(plat.x, plat.y, plat.width, plat.height, "#444");
+  }
+
+  // Draw stars
+  for (let star of stars) {
+    if (!star.collected) {
+      drawCircle(star.x, star.y, 8, "yellow");
+    }
+  }
+
+  // Draw player
+  drawRect(player.x, player.y, player.width, player.height, "#00f");
+
+  // Draw score
+  ctx.fillStyle = "#fff";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 10, 30);
+}
+
+function gameLoop() {
+  update();
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener("keydown", (e) => {
+  keys[e.key] = true;
+  if ((e.key === "ArrowUp" || e.key === "w" || e.key === " ") && player.onGround) {
+    player.velocityY = player.jumpPower;
+  }
+});
+
+document.addEventListener("keyup", (e) => {
+  keys[e.key] = false;
+});
+
+gameLoop();
